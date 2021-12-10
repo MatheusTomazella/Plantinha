@@ -1,30 +1,22 @@
 #pragma once
-#include <ESP8266WiFi.h>
-#include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 #include <DHTesp.h>
-
-String ssid = "A";
-String password = "A216191310";
-IPAddress local_IP(192, 168, 15, 150);
-IPAddress gateway(192, 168, 15, 1);
-IPAddress subnet(255, 255, 0, 0);
+#include <HumiditySensor.h>
 
 ESP8266WebServer server(80);
 
 class Dashboard {
 public:
     DHTesp* dht;
+    HumiditySensor* hSensor;
     
-    Dashboard ( DHTesp* dht ) {
+    Dashboard ( DHTesp* dht, HumiditySensor* hSensor ) {
         this->dht = dht;
+        this->hSensor = hSensor;
     }
 
     void init ( ) {
-        WiFi.config(local_IP, gateway, subnet);
-        WiFi.mode(WIFI_STA);
-
         connect();
         
         if (MDNS.begin("esp8266")) {
@@ -33,20 +25,6 @@ public:
     }
 
     void connect ( ) {
-        WiFi.begin(ssid, password);
-
-        Serial.println("");
-        while (WiFi.status() != WL_CONNECTED) {
-            delay(500);
-            Serial.print(".");
-        }
-
-        Serial.println("");
-        Serial.print("Connected to ");
-        Serial.println(ssid);
-        Serial.print("IP address: ");
-        Serial.println(WiFi.localIP());
-
         setUpRouting();
         server.onNotFound(handleNotFound);
         server.begin();
@@ -54,7 +32,7 @@ public:
     }
 
     void checkAndReconnect ( ) {
-        if (WiFi.status() != WL_CONNECTED) connect();
+        // if (WiFi.status() != WL_CONNECTED) connect();
     }
 
     void disconnect ( ) {
@@ -98,11 +76,13 @@ private:
 
         server.on(F("/data"), HTTP_GET, [this] ( ) { 
             TempAndHumidity dhtReadings = dht->getTempAndHumidity();
-            int lifeTime = 200;
-            int soilHumidity = 60;
-            int waterLevel = 50;
             String name = "Planta";
-            server.send(200, "application/json", "{\"name\":\""+name+"\",\"temperature\":"+String(dhtReadings.temperature)+",\"airHumidity\":"+String(dhtReadings.humidity)+",\"lifeTime\":"+String(lifeTime)+",\"soilHumidity\":"+String(soilHumidity)+",\"waterLevel\":"+String(waterLevel)+"}");
+            float temp = dhtReadings.temperature;
+            float hum = dhtReadings.humidity;
+            int lifeTime = 200;
+            int soilHumidity = hSensor->getPercentage();
+            int waterLevel = 50;
+            server.send(200, "application/json", "{\"name\":\""+name+"\",\"temperature\":"+String(temp)+",\"airHumidity\":"+String(hum)+",\"lifeTime\":"+String(lifeTime)+",\"soilHumidity\":"+String(soilHumidity)+",\"waterLevel\":"+String(waterLevel)+"}");
         } );
     }
 

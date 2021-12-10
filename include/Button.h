@@ -15,12 +15,15 @@ public:
     void update() {
         if ( digitalRead( pin ) == LOW ) {
             if ( timeOfPress == 0 ) timeOfPress = millis();
+            else {
+                int time = millis() - timeOfPress;   
+                if ( time > 1500 && time < 1600 ) hold();
+            }
         } else
             if ( timeOfPress != 0 ) {
                 bool isHold = millis() - timeOfPress > 1000;
                 timeOfPress = 0;
-                if ( isHold ) hold();
-                else press();
+                if ( !isHold ) press();
             }
     }
 

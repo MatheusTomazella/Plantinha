@@ -1,0 +1,1 @@
+#define DISPLAY_REFRESH_RATE 1000 * 5

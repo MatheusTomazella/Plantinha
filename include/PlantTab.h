@@ -6,12 +6,14 @@ class PlantTab : public Tab {
 public: 
     String name;
     DHTesp* dht;
+    HumiditySensor* hSensor;
 
-    PlantTab ( String name, DHTesp* dht ) :
+    PlantTab ( String name, DHTesp* dht, HumiditySensor* hSensor ) :
         Tab( )
     { 
-        this->name = name;
-        this->dht = dht;
+        this->name    = name;
+        this->dht     = dht;
+        this->hSensor = hSensor;
     }
 
     void setup ( ) { }
@@ -41,6 +43,12 @@ public:
         lcd->write(4);
         if (lastValues.humidity < 10) lcd->print("0");
         lcd->print(String(lastValues.humidity,0));
+        lcd->print("% ");
+
+        // Humidity Sensor
+        lcd->write(3);
+        if (hSensor->getPercentage() < 10) lcd->print("0");
+        lcd->print(String(hSensor->getPercentage()));
         lcd->print("% ");
     }
     

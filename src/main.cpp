@@ -1,8 +1,14 @@
 #include "Arduino.h"
+// Config
+#include "config.h"
+// WiFiMulti
+#include <WiFiMulti.h>
 // Dashboard
 #include <Dashboard.h>
 // DHT
 #include <DHTesp.h>
+// HumiditySensor
+#include <HumiditySensor.h>
 //Display
 #include <Display.h>
 #include <customChars.h>
@@ -10,8 +16,9 @@
 #include <IpTab.h>
 //Button
 #include <Button.h>
-// Time
-#include <TimeApi.h>
+// Testing Client wifi
+#include <ESP8266HTTPClient.h>
+#include <WiFiClient.h>
  
 int soilSensorPin;
 int pumpPin;
@@ -24,43 +31,54 @@ Display display(0x27,16,2);
 
 DHTesp dht;
 
-//Dashboard dashboard(&dht);
+HumiditySensor hSensor( A0, 5/*%*/ );
+
+Dashboard dashboard(&dht, &hSensor);
 
 Button button( buttonPin, &display );
  
-void setup(void) {
-  /* Serial */
+void setup( void ) {
+	/* Serial */
 
-  Serial.begin(9600);
+	Serial.begin(9600);
 
-  /* Dashboard */
+	/* WiFi */
+	wiFiMultiInit();
 
-  //dashboard.init();
+	/* Testing Shit */
+	WiFiClient client;
+	
+	Serial.println( client.connect( "google.com", 80 ) );
 
+	Serial.println( client.println( "GET /search?q=arduino HTTP/1.0" ) );
 
+	pinMode( D5, OUTPUT );
 
-  /* DHT */
-  dht.setup(16, DHTesp::DHT11);
+	/* Dashboard */
+	dashboard.init();
 
-  /* Display */
-  display.createChar(0, charDi);
-  display.createChar(1, charAs);
-  display.createChar(2, charCelsius);
-  display.createChar(3, charPlant);
-  display.createChar(4, charWind);
-  
-  display.addTab( new PlantTab( "Planta", &dht ) );
-  //display.addTab( new IpTab( &dashboard ) );
+	/* DHT */
+	dht.setup(16, DHTesp::DHT11);
+
+	/* Display */
+	display.createChar(0, charDi);
+	display.createChar(1, charAs);
+	display.createChar(2, charCelsius);
+	display.createChar(3, charPlant);
+	display.createChar(4, charWind);
+
+	display.addTab( new PlantTab( "Planta", &dht, &hSensor ) );
+	display.addTab( new IpTab( &dashboard ) );
 }
 
 int displayTimer = millis();
-void loop(void) {
-  //dashboard.listen();
-  
-  if ( millis() - displayTimer >= 1000*5 ){
-    display.update();
-    displayTimer = millis();
-  }
+void loop( void ) {
+	dashboard.listen();
 
-  button.update();
+	if ( millis() - displayTimer >= DISPLAY_REFRESH_RATE ) {
+		display.update();
+		displayTimer = millis();
+	}
+
+	button.update();
 }

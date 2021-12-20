@@ -1,6 +1,7 @@
 #include "Arduino.h"
 // Config
 #include "config.h"
+#include "Configurations.h"
 // WiFiMulti
 #include <WiFiMulti.h>
 // Dashboard
@@ -9,6 +10,10 @@
 #include <DHTesp.h>
 // HumiditySensor
 #include <HumiditySensor.h>
+// Reservoir
+#include <Reservoir.h>
+// Pump
+#include <Pump.h>
 //Display
 #include <Display.h>
 #include <customChars.h>
@@ -20,26 +25,32 @@
 #include <ESP8266HTTPClient.h>
 #include <WiFiClient.h>
  
-int soilSensorPin;
-int pumpPin;
-int buttonPin = 0;
-int wl100;
-int wl50;
-int wl25;
+int soilSensorPin = A0;
+int pumpPin 	  = D5;
+int buttonPin 	  = 0;
+int wl100 		  = D6;
+int wl50 		  = D7;
+int wl25 		  = D8;
 
 Display display(0x27,16,2);
 
 DHTesp dht;
 
-HumiditySensor hSensor( A0, 5/*%*/ );
+HumiditySensor hSensor( soilSensorPin, &Configurations::DRY_THRESHOLD_PERCENTAGE );
 
-Dashboard dashboard(&dht, &hSensor);
+Reservoir reservoir( wl25, wl50, wl100 );
+
+Pump pump( pumpPin, &hSensor );
+
+Dashboard dashboard(&dht, &hSensor, &reservoir);
 
 Button button( buttonPin, &display );
  
 void setup( void ) {
-	/* Serial */
+	/* Configurations */
+	Configurations::load();
 
+	/* Serial */
 	Serial.begin(9600);
 
 	/* WiFi */
@@ -61,13 +72,16 @@ void setup( void ) {
 	dht.setup(16, DHTesp::DHT11);
 
 	/* Display */
-	display.createChar(0, charDi);
-	display.createChar(1, charAs);
-	display.createChar(2, charCelsius);
-	display.createChar(3, charPlant);
-	display.createChar(4, charWind);
+	display.createChar( 0, charDi 	     );
+	display.createChar( 1, charAs 	     );
+	display.createChar( 2, charCelsius   );
+	display.createChar( 3, charPlant     );
+	display.createChar( 4, charWind      );
+	display.createChar( 5, charLvl100    );
+	display.createChar( 6, charLvl50     );
+	display.createChar( 7, charLvl25     );
 
-	display.addTab( new PlantTab( "Planta", &dht, &hSensor ) );
+	display.addTab( new PlantTab( &Configurations::PLANT_NAME, &dht, &hSensor, &reservoir ) );
 	display.addTab( new IpTab( &dashboard ) );
 }
 
@@ -75,10 +89,12 @@ int displayTimer = millis();
 void loop( void ) {
 	dashboard.listen();
 
-	if ( millis() - displayTimer >= DISPLAY_REFRESH_RATE ) {
+	if ( millis() - displayTimer >= Configurations::DISPLAY_REFRESH_RATE ) {
 		display.update();
 		displayTimer = millis();
 	}
 
 	button.update();
+
+	pump.check();
 }

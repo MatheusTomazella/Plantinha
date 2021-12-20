@@ -4,10 +4,11 @@
 class HumiditySensor {
 private:
     int pin;
-    int threshold;
+    int* threshold;
 
 public:
-    HumiditySensor ( int pin, int thresholdPercentage ) {
+    HumiditySensor( );
+    HumiditySensor ( int pin, int* thresholdPercentage ) {
         this->pin = pin;
         this->threshold = thresholdPercentage;
         pinMode(pin, INPUT);
@@ -22,6 +23,6 @@ public:
     }
 
     int isDry ( ) {
-        return getAnalog() < threshold;
+        return getAnalog() <= *threshold;
     }
 };

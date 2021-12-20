@@ -2,18 +2,30 @@
 #include "Arduino.h"
 #include <Tab.h>
 
+#define wlIcon100    5
+#define wlIcon50     6
+#define wlIcon25     7
+#define wlIconDanger 9
+
+int intLength ( int number ) {
+    String s = String( number );
+    return s.length();
+}
+
 class PlantTab : public Tab {
 public: 
-    String name;
+    String* name;
     DHTesp* dht;
     HumiditySensor* hSensor;
+    Reservoir* reservoir;
 
-    PlantTab ( String name, DHTesp* dht, HumiditySensor* hSensor ) :
+    PlantTab ( String* name, DHTesp* dht, HumiditySensor* hSensor, Reservoir* reservoir ) :
         Tab( )
     { 
-        this->name    = name;
-        this->dht     = dht;
-        this->hSensor = hSensor;
+        this->name      = name;
+        this->dht       = dht;
+        this->hSensor   = hSensor;
+        this->reservoir = reservoir;
     }
 
     void setup ( ) { }
@@ -22,12 +34,15 @@ public:
         clear( );
         
         // Name
-        lcd->print( name );
+        lcd->print( *name );
 
         // Time
         lcd->setCursor(14,0);
         lcd->write(0);
         lcd->write(1);
+            // lcd total - length of measuring unit - length of number + 
+        lcd->setCursor( 16 - 2 - intLength(Configurations::PLANT_TIME_DAYS), 0 );
+        lcd->print( Configurations::PLANT_TIME_DAYS );
 
         // Sensors
         lcd->setCursor(0,1);
@@ -50,9 +65,20 @@ public:
         if (hSensor->getPercentage() < 10) lcd->print("0");
         lcd->print(String(hSensor->getPercentage()));
         lcd->print("% ");
+
+        // Reservoir
+        int level = reservoir->getLevelPercentage();
+        lcd->setCursor(15, 1);
+        if      ( level == 100 ) lcd->write( wlIcon100 );
+        else if ( level == 50  ) lcd->write( wlIcon50  );
+        else if ( level == 25  ) lcd->write( wlIcon25  );
+        else if ( level == 0   ) {
+            lcd->setCursor(14, 1);
+            lcd->print("!!");
+        }
     }
     
     void identify ( void ) {
-        Serial.println( "PlantTab: " + name );
+        Serial.println( "PlantTab: " + *name );
     }
 };

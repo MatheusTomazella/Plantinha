@@ -3,6 +3,7 @@
 #include <ESP8266mDNS.h>
 #include <DHTesp.h>
 #include <HumiditySensor.h>
+#include <Reservoir.h>
 
 ESP8266WebServer server(80);
 
@@ -10,10 +11,12 @@ class Dashboard {
 public:
     DHTesp* dht;
     HumiditySensor* hSensor;
+    Reservoir* reservoir;
     
-    Dashboard ( DHTesp* dht, HumiditySensor* hSensor ) {
+    Dashboard ( DHTesp* dht, HumiditySensor* hSensor, Reservoir* reservoir ) {
         this->dht = dht;
         this->hSensor = hSensor;
+        this->reservoir = reservoir;
     }
 
     void init ( ) {
@@ -32,7 +35,7 @@ public:
     }
 
     void checkAndReconnect ( ) {
-        // if (WiFi.status() != WL_CONNECTED) connect();
+        if (WiFi.status() != WL_CONNECTED) connect();
     }
 
     void disconnect ( ) {
@@ -76,12 +79,12 @@ private:
 
         server.on(F("/data"), HTTP_GET, [this] ( ) { 
             TempAndHumidity dhtReadings = dht->getTempAndHumidity();
-            String name = "Planta";
+            String name = Configurations::PLANT_NAME;
             float temp = dhtReadings.temperature;
             float hum = dhtReadings.humidity;
-            int lifeTime = 200;
+            int lifeTime = Configurations::PLANT_TIME_DAYS;
             int soilHumidity = hSensor->getPercentage();
-            int waterLevel = 50;
+            int waterLevel = reservoir->getLevelPercentage();
             server.send(200, "application/json", "{\"name\":\""+name+"\",\"temperature\":"+String(temp)+",\"airHumidity\":"+String(hum)+",\"lifeTime\":"+String(lifeTime)+",\"soilHumidity\":"+String(soilHumidity)+",\"waterLevel\":"+String(waterLevel)+"}");
         } );
     }

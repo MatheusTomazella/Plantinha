@@ -65,6 +65,8 @@ public:
     void listen ( ) {
         checkAndReconnect();
         server.handleClient();
+        MDNS.update();
+        delay(Configurations::DASHBOARD_DELAY_MS); // Sem o dalay não tava conectando com o servidor por algum motivo
     }
 
 private:

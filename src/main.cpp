@@ -56,6 +56,9 @@ void setup( void ) {
 	/* WiFi */
 	wiFiMultiInit();
 
+	/* Dashboard */
+	dashboard.init();
+
 	/* Testing Shit */
 	WiFiClient client;
 	
@@ -64,9 +67,6 @@ void setup( void ) {
 	Serial.println( client.println( "GET /search?q=arduino HTTP/1.0" ) );
 
 	pinMode( D5, OUTPUT );
-
-	/* Dashboard */
-	dashboard.init();
 
 	/* DHT */
 	dht.setup(16, DHTesp::DHT11);

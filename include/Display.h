@@ -3,6 +3,7 @@
 #include <LiquidCrystal_I2C.h>
 #include <Tab.h>
 #include <PlantTab.h>
+#include <displayEventQueue.h>
 
 class Display {
 public:
@@ -66,5 +67,21 @@ public:
 
     void update ( ) {
         current->draw();
+    }
+
+    void runDisplayEventQueue ( ) {
+        while ( displayEventQueue.size() > 0 ) {
+            DisplayEvent event = displayEventQueue.at(0);
+            switch (event)
+            {
+            case DisplayEvent_NextTab:
+                nextTab();
+            break;
+            case DisplayEvent_NavigateHome:
+                navigateHome();
+            break;
+            }
+            displayEventQueue.pop_back();
+        }
     }
 };

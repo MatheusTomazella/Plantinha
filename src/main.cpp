@@ -1,4 +1,6 @@
 #include "Arduino.h"
+// Database 
+#include <Database.h>
 // Config
 #include "config.h"
 #include "Configurations.h"
@@ -18,12 +20,9 @@
 #include <Display.h>
 #include <customChars.h>
 #include <PlantTab.h>
-#include <IpTab.h>
+#include <PlantIdTab.h>
 //Button
 #include <Button.h>
-// Testing Client wifi
-#include <ESP8266HTTPClient.h>
-#include <WiFiClient.h>
  
 int soilSensorPin = A0;
 int pumpPin 	  = D5;
@@ -47,26 +46,18 @@ Dashboard dashboard(&dht, &hSensor, &reservoir);
 Button button( buttonPin, &display );
  
 void setup( void ) {
-	/* Configurations */
-	Configurations::load();
-
 	/* Serial */
 	Serial.begin(9600);
 
+	/* Database */
+	Database::init();
+
+	/* Configurations */
+	Configurations::load();
+	dashboard.loadLifetime();
+
 	/* WiFi */
 	wiFiMultiInit();
-
-	/* Dashboard */
-	dashboard.init();
-
-	/* Testing Shit */
-	WiFiClient client;
-	
-	Serial.println( client.connect( "google.com", 80 ) );
-
-	Serial.println( client.println( "GET /search?q=arduino HTTP/1.0" ) );
-
-	pinMode( D5, OUTPUT );
 
 	/* DHT */
 	dht.setup(16, DHTesp::DHT11);
@@ -82,19 +73,27 @@ void setup( void ) {
 	display.createChar( 7, charLvl25     );
 
 	display.addTab( new PlantTab( &Configurations::PLANT_NAME, &dht, &hSensor, &reservoir ) );
-	display.addTab( new IpTab( &dashboard ) );
+	display.addTab( new PlantIdTab( ) );
 }
 
 int displayTimer = millis();
+int lifetimeTimer = millis();
 void loop( void ) {
-	dashboard.listen();
 
 	if ( millis() - displayTimer >= Configurations::DISPLAY_REFRESH_RATE ) {
 		display.update();
+		dashboard.postData();
 		displayTimer = millis();
 	}
 
+	if ( millis() - lifetimeTimer >= Configurations::GET_LIFETIME_INTERVAL ) {
+		dashboard.loadLifetime();
+		dashboard.loadName();
+		lifetimeTimer = millis();
+	}
+
 	button.update();
+	display.runDisplayEventQueue();
 
 	pump.check();
 }
